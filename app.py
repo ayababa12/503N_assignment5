@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 app = Flask(__name__)
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -14,7 +15,28 @@ def summarize():
     """
     Accepts a paragraph and returns a summary
     """
-    return "", 200
+    data = request.get_json()
+
+    if not data or "text" not in data:
+        return jsonify({"error": "Missing 'text' field in JSON payload."}), 400
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+                {"role": "user", "content": f"Summarize the following:\n\n{data['text']}"}
+            ],
+            temperature=0.5,
+            max_tokens=150
+        )
+        summary = response.choices[0].message.content.strip()
+        return jsonify({"summary": summary})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
 
 @app.route("/translate", methods=["GET"])
 def translate():
